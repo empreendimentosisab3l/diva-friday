@@ -6,8 +6,9 @@ function tick(){
  $('#countdown').hidden=state.remaining===null||state.phase==='ended';
  $('#countdown').style.display=$('#countdown').hidden?'none':'';
  if(state.remaining!==null){let t=Math.max(0,Math.floor(state.remaining/1000));const values=[Math.floor(t/86400),Math.floor(t%86400/3600),Math.floor(t%3600/60),t%60];['days','hours','minutes','seconds'].forEach((id,i)=>$('#'+id).textContent=String(values[i]).padStart(2,'0'));}
- $('#offer-status').textContent=state.phase==='ended'?'Campanha encerrada':'Frete Grátis + Brindes especiais';
- document.querySelectorAll('.checkout').forEach(a=>{a.href=state.phase==='live'&&config.checkoutVerified?checkoutUrl(a.dataset.base,location.search,a.dataset.kit):'#quero';a.textContent=state.phase==='upcoming'?'Conhecer este kit ↗':state.phase==='ended'?'Campanha encerrada':'Quero este kit ↗'});
+ $('#offer-status').textContent=config.purchaseMode==='group'?'Estoque esgotado · Entre no grupo de reposição':state.phase==='ended'?'Campanha encerrada':'Frete Grátis + Brindes especiais';
+ const stockNote=document.querySelector('.stock-note');if(stockNote){stockNote.dataset.original ||= stockNote.textContent;stockNote.textContent=config.purchaseMode==='group'?'Estoque esgotado — entre no grupo para ser avisada assim que o Diva Slim voltar e garantir o seu produto.':stockNote.dataset.original;}
+ document.querySelectorAll('.checkout').forEach(a=>{a.href=config.purchaseMode==='group'?config.groupUrl:checkoutUrl(a.dataset.base,location.search,a.dataset.kit);a.textContent=config.purchaseMode==='group'?'Comprar agora':'Quero este kit ↗';if(config.purchaseMode==='group')a.setAttribute('aria-haspopup','dialog');else a.removeAttribute('aria-haspopup');});
 }
 tick();setInterval(tick,1000);
 const range=$('.compare-range');range.addEventListener('input',()=>{const v=Number(range.value);$('.compare .top').style.clipPath=`inset(0 ${100-v}% 0 0)`;$('.compare-divider').style.left=v+'%';});
@@ -18,7 +19,23 @@ function closeMedia(){dialog.close();}
 $('.dialog-close').addEventListener('click',closeMedia);dialog.addEventListener('click',e=>{if(e.target===dialog)closeMedia()});dialog.addEventListener('close',()=>{content.replaceChildren();document.body.style.overflow='';previousFocus?.focus()});
 document.querySelectorAll('[data-image]').forEach(b=>b.addEventListener('click',()=>{const img=new Image();img.src=b.dataset.image;img.alt='Relato compartilhado por cliente Diva';openMedia(img)}));
 document.querySelectorAll('[data-video]').forEach(b=>b.addEventListener('click',()=>{const frame=document.createElement('iframe');frame.src=`https://www.youtube-nocookie.com/embed/${b.dataset.video}?autoplay=1&playsinline=1`;frame.title='Depoimento Diva';frame.allow='autoplay; encrypted-media; picture-in-picture';frame.allowFullscreen=true;openMedia(frame)}));
-document.querySelectorAll('.checkout').forEach(a=>{a.href=campaignState().phase==='live'&&config.checkoutVerified?checkoutUrl(a.dataset.base,location.search,a.dataset.kit):'#quero';a.addEventListener('click',event=>{const state=campaignState();if(state.phase!=='live'||!config.checkoutVerified){event.preventDefault();const box=document.createElement('div');box.className='notice';const title=document.createElement('h3'),p=document.createElement('p');title.textContent=state.phase==='upcoming'?'Sua Diva Friday começa em 24/11':state.phase==='ended'?'A Diva Friday terminou':'Oferta em preparação';p.textContent=state.phase==='upcoming'?'Os valores de Black Friday apresentados nesta página são para a campanha a partir de 24 de novembro. Acompanhe a Diva para saber da abertura.':state.phase==='ended'?'Acompanhe a Diva para conhecer as próximas ofertas.':'A liberação desta oferta será anunciada pelos canais oficiais da Diva.';const social=document.createElement('a');social.className='btn';social.href='https://www.instagram.com/usedivabrasil/';social.target='_blank';social.rel='noopener';social.textContent='Acompanhar @usedivabrasil ↗';box.append(title,p,social);openMedia(box)}})});
+// Switch purchaseMode to 'checkout' in campaign.js to restore original per-kit links.
+function openStockNotice(){
+ const box=document.createElement('div');box.className='stock-notice';
+ const logo=document.createElement('img');logo.src='diva-logo.svg?v=2';logo.alt='Diva';logo.className='stock-logo';
+ const eyebrow=document.createElement('span');eyebrow.className='eyebrow';eyebrow.textContent='AVISO IMPORTANTE';
+ const title=document.createElement('h2');title.id='stock-title';title.textContent='Nosso estoque esgotou!';
+ const p=document.createElement('p');p.id='stock-description';p.textContent='Devido à alta procura na Black Friday, o estoque do Diva Slim esgotou!';
+ const invite=document.createElement('p');invite.textContent='Entre no nosso grupo de WhatsApp para ser avisada assim que os estoques voltarem e garantir o seu produto.';
+ const link=document.createElement('a');link.className='btn stock-group';link.href=config.groupUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Entrar no grupo de reposição ↗';
+ const note=document.createElement('small');note.textContent='Acompanhe pelo grupo as novidades sobre a reposição.';
+ box.append(logo,eyebrow,title,p,invite,link,note);dialog.setAttribute('aria-labelledby','stock-title');dialog.setAttribute('aria-describedby','stock-description');openMedia(box);
+}
+document.addEventListener('click',event=>{
+ if(config.purchaseMode!=='group'||!(event.target instanceof Element)||!event.target.closest('.kit')||window.getSelection()?.toString())return;
+ event.preventDefault();event.stopImmediatePropagation();if(!dialog.open)openStockNotice();
+},true);
+dialog.addEventListener('close',()=>{dialog.removeAttribute('aria-labelledby');dialog.removeAttribute('aria-describedby');});
 const mobile=$('.mobile-cta');new IntersectionObserver(entries=>{mobile.classList.toggle('hide',entries[0].isIntersecting)},{threshold:0}).observe($('#quero'));
 
 // Automatic testimonial movement pauses whenever the visitor interacts.

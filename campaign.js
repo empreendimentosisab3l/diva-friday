@@ -1,6 +1,6 @@
 // Campaign dates use Sao Paulo time. End stays null until supplied by the brand.
 (function(root){
- const config={startsAt:'2026-11-24T00:00:00-03:00',endsAt:null,checkoutVerified:false};
+ const config={startsAt:'2026-11-24T00:00:00-03:00',endsAt:null,checkoutVerified:false,purchaseMode:'group',groupUrl:'https://chat.whatsapp.com/I08koZAaq97E9eNe2oXuvQ?s=cl&p=i&mlu=4&ilr=4&iam=2'};
  function campaignState(now=Date.now(),settings=config){
   const start=Date.parse(settings.startsAt),end=settings.endsAt?Date.parse(settings.endsAt):null;
   if(now<start)return {phase:'upcoming',remaining:start-now};
